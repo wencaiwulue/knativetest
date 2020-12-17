@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test
+  namespace: test
+spec:
+  selector:
+    matchLabels:
+      test: test
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        test: test
+    spec:
+#      serviceAccountName: test-serviceaccount
+      containers:
+        - image: test:latest
+          imagePullPolicy: IfNotPresent
+          name: test
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"

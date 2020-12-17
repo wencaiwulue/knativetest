@@ -1,0 +1,9 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: helloworld-image
+spec:
+  type: image
+  params:
+    - name: url
+      value: 10.1.1.20:5000/second/third:latest
