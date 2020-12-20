@@ -1,1 +1,1 @@
-## install istio and knative first
+# Need install tekton, istio and knative previously
