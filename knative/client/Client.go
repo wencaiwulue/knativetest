@@ -25,7 +25,7 @@ func GetClient() *Client {
 		if client == nil {
 			initClient(true)
 		}
-		lock.Unlock()
+		defer lock.Unlock()
 	}
 	return client
 }
@@ -51,5 +51,9 @@ func initClient(inCluster bool) {
 		fmt.Printf("error create tekton client: %v", err)
 	}
 
-	client = &Client{K8sClient: K8sClient, ServingClient: ServingClient, TektonClient: TektonClient}
+	client = &Client{
+		K8sClient:     K8sClient,
+		ServingClient: ServingClient,
+		TektonClient:  TektonClient,
+	}
 }

@@ -2,11 +2,13 @@ package knative
 
 import (
 	"context"
+	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 	"log"
+	"net/http"
 	"strconv"
 	"test/knative/client"
 	"test/knative/controller"
@@ -21,6 +23,11 @@ type CreateServiceAction struct {
 }
 
 func (c *CreateServiceAction) Process(ctx context.Context) interface{} {
+	m := ctx.Value("http").(map[string]interface{})
+	reqq := m["http.request"].(*http.Request)
+	body := m["http.request.body"].(string)
+	fmt.Printf("body: %v\n", body)
+	fmt.Printf("header: %v\n", reqq.Header)
 	var containerConcurrency, _ = strconv.ParseInt("4", 10, 64)
 	var trafficMin, _ = strconv.ParseInt("0", 10, 64)
 	var trafficMax, _ = strconv.ParseInt("100", 10, 64)
@@ -73,10 +80,10 @@ func (c *CreateServiceAction) Process(ctx context.Context) interface{} {
 				Traffic: []servingv1.TrafficTarget{{
 					// need enable tagHeaderBasedRouting, reference https://knative.dev/docs/serving/samples/tag-header-based-routing/
 					Tag:          "rev1",
-					RevisionName: "revision-1", //todo same
+					RevisionName: c.Name + "-1", //attention keep the same with revision name
 					Percent:      &trafficMin,
 				}, {
-					RevisionName: "revision-2", //todo same
+					RevisionName: c.Name + "-2", //attention keep the same with revision name
 					Percent:      &trafficMax,
 				}},
 			},
