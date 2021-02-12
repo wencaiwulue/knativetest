@@ -23,9 +23,14 @@ type CreateRevisionAction struct {
 func (c *CreateRevisionAction) Process(ctx context.Context) interface{} {
 	var containerConcurrency, _ = strconv.ParseInt("4", 10, 64)
 	resourceMax := map[corev1.ResourceName]resource.Quantity{
-		corev1.ResourceCPU:              resource.MustParse("200m"),
-		corev1.ResourceMemory:           resource.MustParse("256Mi"),
-		corev1.ResourceEphemeralStorage: resource.MustParse("256Mi"),
+		corev1.ResourceCPU:    resource.MustParse("200m"),
+		corev1.ResourceMemory: resource.MustParse("256Mi"),
+		//corev1.ResourceEphemeralStorage: resource.MustParse("256Mi"),
+	}
+	resourceMin := map[corev1.ResourceName]resource.Quantity{
+		corev1.ResourceCPU:    resource.MustParse("100m"),
+		corev1.ResourceMemory: resource.MustParse("128Mi"),
+		//corev1.ResourceEphemeralStorage: resource.MustParse("256Mi"),
 	}
 
 	var serviceRevision1 = servingv1.Revision{
@@ -53,8 +58,12 @@ func (c *CreateRevisionAction) Process(ctx context.Context) interface{} {
 				Containers: []corev1.Container{{
 					Image:           IMAGE,
 					ImagePullPolicy: corev1.PullIfNotPresent,
-					Ports:           []corev1.ContainerPort{{ContainerPort: 80}}},
-				},
+					Ports:           []corev1.ContainerPort{{ContainerPort: 80}},
+					Resources: corev1.ResourceRequirements{
+						Limits:   resourceMax,
+						Requests: resourceMin,
+					},
+				}},
 				Overhead: resourceMax,
 			},
 			ContainerConcurrency: &containerConcurrency,
@@ -84,6 +93,10 @@ func (c *CreateRevisionAction) Process(ctx context.Context) interface{} {
 					Image:           IMAGE,
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Ports:           []corev1.ContainerPort{{ContainerPort: 80}},
+					Resources: corev1.ResourceRequirements{
+						Limits:   resourceMax,
+						Requests: resourceMin,
+					},
 				}},
 				Overhead: resourceMax,
 			},

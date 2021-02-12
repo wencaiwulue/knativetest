@@ -10,6 +10,6 @@ cd ..
 
 docker build -t test:latest .
 
-kubectl delete -f test.yaml
+kubectl delete -f test-deployment.yaml
 
-kubectl apply -f test.yaml
+kubectl apply -f test-deployment.yaml

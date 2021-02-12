@@ -22,9 +22,13 @@ func RegisterAction(action controller.Action) {
 
 func init() {
 	RegisterAction(&k8s.CreateNamespaceAction{})
-	RegisterAction(&k8s.CreateNamespaceAction{})
+	RegisterAction(&k8s.DeleteNamespaceAction{})
 	RegisterAction(&knative.CreateServiceAction{})
+	RegisterAction(&knative.CreateRevisionAction{})
+	RegisterAction(&knative.CreateHPAAction{})
+	RegisterAction(&knative.CreateKPAAction{})
 	RegisterAction(&knative.ListServiceAction{})
+	RegisterAction(&knative.ListRevisionAction{})
 	RegisterAction(&tekton.ListResourceAction{})
 	RegisterAction(&tekton.CreateKanikoClusterTask{})
 	RegisterAction(&tekton.CreateKanikoTaskRun{})

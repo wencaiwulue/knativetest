@@ -6,12 +6,12 @@ metadata:
 spec:
   selector:
     matchLabels:
-      test: test
+      app: test
   replicas: 1
   template:
     metadata:
       labels:
-        test: test
+        app: test
     spec:
       containers:
         - image: test:latest

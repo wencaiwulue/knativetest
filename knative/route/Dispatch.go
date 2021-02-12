@@ -15,7 +15,7 @@ type Dispatch struct {
 }
 
 func (d *Dispatch) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	var action = strings.ReplaceAll(req.RequestURI, "/", "")
+	var action = strings.ReplaceAll(req.URL.Path, "/", "")
 	var value, found = route.Load(action)
 	if !found {
 		fmt.Printf("Can't found handler for action: %v\n", action)

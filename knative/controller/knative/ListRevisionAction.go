@@ -27,7 +27,7 @@ func (c *ListRevisionAction) Process(ctx context.Context) interface{} {
 	if err != nil || service == nil {
 		log.Printf("create service error info: %v", err)
 	}
-	result := Result{}
+	result := Result{List: make([]Item, len(service.Items))}
 	for i, e := range service.Items {
 		result.List[i] = Item{Name: e.Name}
 	}

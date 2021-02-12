@@ -22,9 +22,9 @@ func (c *ListServiceAction) Process(ctx context.Context) interface{} {
 	}
 	var service, err = client.GetClient().ServingClient.ServingV1().Services(c.Namespace).List(ctx, option)
 	if err != nil || service == nil {
-		log.Printf("create service error info: %v", err)
+		log.Printf("create service error info: %v\n", err)
 	}
-	result := Result{}
+	result := Result{List: make([]Item, len(service.Items))}
 	for i, e := range service.Items {
 		result.List[i] = Item{Name: e.Name}
 	}
