@@ -9,18 +9,21 @@ import (
 	"test/knative/controller"
 )
 
-type ListServiceAction struct {
+type ListRevisionAction struct {
 	controller.Action
 	Namespace string
 	Name      string
 }
 
-func (c *ListServiceAction) Process(ctx context.Context) interface{} {
+func (c *ListRevisionAction) Process(ctx context.Context) interface{} {
 	option := metav1.ListOptions{}
 	if c.Name != "" {
 		option.LabelSelector = fmt.Sprintf("name=%s", c.Name)
 	}
-	var service, err = client.GetClient().ServingClient.ServingV1().Services(c.Namespace).List(ctx, option)
+	if c.Name != "" {
+		option.LabelSelector = fmt.Sprintf("name=%s", c.Name)
+	}
+	var service, err = client.GetClient().ServingClient.ServingV1().Revisions(c.Namespace).List(ctx, option)
 	if err != nil || service == nil {
 		log.Printf("create service error info: %v", err)
 	}
@@ -29,11 +32,4 @@ func (c *ListServiceAction) Process(ctx context.Context) interface{} {
 		result.List[i] = Item{Name: e.Name}
 	}
 	return result
-}
-
-type Result struct {
-	List []Item
-}
-type Item struct {
-	Name string
 }

@@ -9,10 +9,10 @@ import (
 
 type DeleteNamespaceAction struct {
 	controller.Action
-	Namespace string
+	Name string
 }
 
 func (c *DeleteNamespaceAction) Process(ctx context.Context) interface{} {
-	_ = client.GetClient().K8sClient.CoreV1().Namespaces().Delete(ctx, c.Namespace, metav1.DeleteOptions{})
-	return true
+	result := client.GetClient().K8sClient.CoreV1().Namespaces().Delete(ctx, c.Name, metav1.DeleteOptions{})
+	return result
 }

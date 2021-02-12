@@ -19,7 +19,7 @@ type CreateRevisionAction struct {
 }
 
 // use service to control traffic, if create maxPolicySelect new revision, should update service traffic manager
-// todo traffic manager RevisionName should equals to revisoin name
+// todo traffic manager RevisionName should equals to revision name
 func (c *CreateRevisionAction) Process(ctx context.Context) interface{} {
 	var containerConcurrency, _ = strconv.ParseInt("4", 10, 64)
 	resourceMax := map[corev1.ResourceName]resource.Quantity{

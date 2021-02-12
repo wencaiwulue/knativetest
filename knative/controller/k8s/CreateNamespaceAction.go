@@ -10,12 +10,12 @@ import (
 
 type CreateNamespaceAction struct {
 	controller.Action
-	Namespace string
+	Name string
 }
 
 func (c *CreateNamespaceAction) Process(ctx context.Context) interface{} {
-	var v1Namespace, _ = client.GetClient().K8sClient.CoreV1().Namespaces().Create(ctx, &k8sV1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: c.Namespace},
+	var result, _ = client.GetClient().K8sClient.CoreV1().Namespaces().Create(ctx, &k8sV1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{Name: c.Name},
 	}, metav1.CreateOptions{})
-	return v1Namespace
+	return result
 }
