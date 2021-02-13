@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.2.0 // indirect
+	github.com/docker/docker v1.13.1
 	github.com/google/uuid v1.1.2
 	github.com/tektoncd/pipeline v0.18.1
 	golang.org/x/tools v0.0.0-20201022035929-9cf592e881e9 // indirect

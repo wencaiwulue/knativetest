@@ -15,6 +15,8 @@ type Dispatch struct {
 }
 
 func (d *Dispatch) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	var action = strings.ReplaceAll(req.URL.Path, "/", "")
 	var value, found = route.Load(action)
 	if !found {

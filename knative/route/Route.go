@@ -29,6 +29,7 @@ func init() {
 	RegisterAction(&knative.CreateKPAAction{})
 	RegisterAction(&knative.ListServiceAction{})
 	RegisterAction(&knative.ListRevisionAction{})
+	RegisterAction(&knative.InvokeAction{})
 	RegisterAction(&tekton.ListResourceAction{})
 	RegisterAction(&tekton.CreateKanikoClusterTask{})
 	RegisterAction(&tekton.CreateKanikoTaskRun{})
