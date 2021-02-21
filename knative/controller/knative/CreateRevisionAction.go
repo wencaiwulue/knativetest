@@ -22,6 +22,7 @@ type CreateRevisionAction struct {
 // todo traffic manager RevisionName should equals to revision name
 func (c *CreateRevisionAction) Process(ctx context.Context) interface{} {
 	var containerConcurrency, _ = strconv.ParseInt("4", 10, 64)
+	var containerTimeout, _ = strconv.ParseInt("4", 10, 64)
 	resourceMax := map[corev1.ResourceName]resource.Quantity{
 		corev1.ResourceCPU:    resource.MustParse("200m"),
 		corev1.ResourceMemory: resource.MustParse("256Mi"),
@@ -67,6 +68,7 @@ func (c *CreateRevisionAction) Process(ctx context.Context) interface{} {
 				Overhead: resourceMax,
 			},
 			ContainerConcurrency: &containerConcurrency,
+			TimeoutSeconds:       &containerTimeout,
 		},
 	}
 
@@ -101,6 +103,7 @@ func (c *CreateRevisionAction) Process(ctx context.Context) interface{} {
 				Overhead: resourceMax,
 			},
 			ContainerConcurrency: &containerConcurrency,
+			TimeoutSeconds:       &containerTimeout,
 		},
 	}
 	option := metav1.CreateOptions{}
