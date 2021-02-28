@@ -4,12 +4,12 @@ import (
 	"context"
 	k8sV1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"test/knative/client"
-	"test/knative/controller"
+	"test/pkg/action"
+	"test/pkg/client"
 )
 
 type CreateNamespaceAction struct {
-	controller.Action
+	action.Action
 	Name string
 }
 

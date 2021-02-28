@@ -7,12 +7,12 @@ import (
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 	"log"
 	"net/http"
-	"test/knative/client"
-	"test/knative/controller"
+	"test/pkg/action"
+	"test/pkg/client"
 )
 
 type UpdateServiceTrafficAction struct {
-	controller.Action
+	action.Action
 	Namespace     string
 	Name          string
 	TrafficTarget []servingv1.TrafficTarget

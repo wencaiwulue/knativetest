@@ -8,12 +8,12 @@ import (
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 	"log"
 	"strconv"
-	"test/knative/client"
-	"test/knative/controller"
+	"test/pkg/action"
+	"test/pkg/client"
 )
 
 type CreateRevisionAction struct {
-	controller.Action
+	action.Action
 	Namespace string
 	Name      string
 }

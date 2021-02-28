@@ -6,12 +6,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"test/knative/client"
-	"test/knative/controller"
+	"test/pkg/action"
+	"test/pkg/client"
 )
 
 type CreateKanikoTaskRun struct {
-	controller.Action
+	action.Action
 	Namespace string
 	Name      string
 }

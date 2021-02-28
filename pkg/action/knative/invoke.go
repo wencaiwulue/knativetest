@@ -7,12 +7,12 @@ import (
 	"github.com/google/uuid"
 	"io/ioutil"
 	"net/http"
-	"test/knative/controller"
+	"test/pkg/action"
 	"time"
 )
 
 type InvokeAction struct {
-	controller.Action
+	action.Action
 	Namespace string
 	Name      string
 	Tag       string

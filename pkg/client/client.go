@@ -38,22 +38,22 @@ func initClient(inCluster bool) {
 		config, _ = clientcmd.BuildConfigFromFlags("", "~/.kube/config")
 	}
 	//var err error
-	K8sClient, err := kubernetes.NewForConfig(config)
+	k8sClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		fmt.Printf("error create k8s client: %v", err)
 	}
-	ServingClient, err := serving.NewForConfig(config)
+	servingClient, err := serving.NewForConfig(config)
 	if err != nil {
 		fmt.Printf("error create knative serving client: %v", err)
 	}
-	TektonClient, err := tektoncd.NewForConfig(config)
+	tektonClient, err := tektoncd.NewForConfig(config)
 	if err != nil {
 		fmt.Printf("error create tekton client: %v", err)
 	}
 
 	client = &Client{
-		K8sClient:     K8sClient,
-		ServingClient: ServingClient,
-		TektonClient:  TektonClient,
+		K8sClient:     k8sClient,
+		ServingClient: servingClient,
+		TektonClient:  tektonClient,
 	}
 }

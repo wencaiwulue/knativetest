@@ -5,12 +5,12 @@ import (
 	"context"
 	"io"
 	corev1 "k8s.io/api/core/v1"
-	"test/knative/client"
-	"test/knative/controller"
+	"test/pkg/action"
+	"test/pkg/client"
 )
 
 type GetLogAction struct {
-	controller.Action
+	action.Action
 	Namespace string
 	Name      string
 	Container string

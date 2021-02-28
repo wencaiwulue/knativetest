@@ -3,13 +3,13 @@ package tekton
 import (
 	"context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"test/knative/client"
-	"test/knative/controller"
-	"test/knative/controller/knative"
+	"test/pkg/action"
+	"test/pkg/action/knative"
+	"test/pkg/client"
 )
 
 type ListResourceAction struct {
-	controller.Action
+	action.Action
 	Namespace string
 	Name      string
 }

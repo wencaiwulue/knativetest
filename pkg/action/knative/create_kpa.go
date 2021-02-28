@@ -7,12 +7,12 @@ import (
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/serving/pkg/apis/autoscaling/v1alpha1"
 	"log"
-	"test/knative/client"
-	"test/knative/controller"
+	"test/pkg/action"
+	"test/pkg/client"
 )
 
 type CreateKPAAction struct {
-	controller.Action
+	action.Action
 	Namespace string
 	Name      string
 }

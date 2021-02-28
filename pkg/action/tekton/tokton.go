@@ -4,12 +4,12 @@ import (
 	"context"
 	beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"test/knative/client"
-	"test/knative/controller"
+	"test/pkg/action"
+	"test/pkg/client"
 )
 
 type ToktonAction struct {
-	controller.Action
+	action.Action
 	Namespace string
 }
 

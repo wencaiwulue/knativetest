@@ -3,19 +3,19 @@ package route
 import (
 	"reflect"
 	"sync"
-	"test/knative/controller"
-	"test/knative/controller/k8s"
-	"test/knative/controller/knative"
-	"test/knative/controller/tekton"
+	"test/pkg/action"
+	"test/pkg/action/k8s"
+	"test/pkg/action/knative"
+	"test/pkg/action/tekton"
 )
 
 var route sync.Map
 
-func Register(name string, action controller.Action) {
+func Register(name string, action action.Action) {
 	route.Store(name, action)
 }
 
-func RegisterAction(action controller.Action) {
+func RegisterAction(action action.Action) {
 	name := reflect.TypeOf(action).Elem().Name()
 	Register(name, action)
 }

@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
-	"test/knative/controller/tekton"
-	"test/knative/route"
+	"test/cmd/route"
+	"test/pkg/action/tekton"
 )
 
 func main() {

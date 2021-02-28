@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"test/knative/controller"
+	"test/pkg/action"
 )
 
 type Dispatch struct {
@@ -17,12 +17,12 @@ type Dispatch struct {
 func (d *Dispatch) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	var action = strings.ReplaceAll(req.URL.Path, "/", "")
-	var value, found = route.Load(action)
+	var actionStr = strings.ReplaceAll(req.URL.Path, "/", "")
+	var value, found = route.Load(actionStr)
 	if !found {
-		fmt.Printf("Can't found handler for action: %v\n", action)
+		fmt.Printf("Can't found handler for action: %v\n", actionStr)
 	}
-	var a, ok = value.(controller.Action)
+	var a, ok = value.(action.Action)
 	if !ok {
 		fmt.Printf("Can't cast to a handler, value: %v\n", value)
 	}

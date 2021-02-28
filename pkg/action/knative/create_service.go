@@ -10,14 +10,14 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"test/knative/client"
-	"test/knative/controller"
+	"test/pkg/action"
+	"test/pkg/client"
 )
 
 const IMAGE = "test:latest"
 
 type CreateServiceAction struct {
-	controller.Action
+	action.Action
 	Namespace string
 	Name      string
 }
