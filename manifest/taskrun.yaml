@@ -8,7 +8,7 @@ spec:
     name: helloworld-task
   params:
     - name: pathToDockerFile
-      value: $(resources.inputs.docker-source.path)/Dockerfile
+      value: $(resources.inputs.docker-source.path)/Dockerfile_admissionwebhook
     - name: pathToContext
       value: $(resources.inputs.docker-source.path)
     - name: image

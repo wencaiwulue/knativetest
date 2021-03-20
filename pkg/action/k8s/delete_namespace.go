@@ -3,8 +3,8 @@ package k8s
 import (
 	"context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"test/pkg/action"
-	"test/pkg/client"
+	"knativetest/pkg/action"
+	"knativetest/pkg/client"
 )
 
 type DeleteNamespaceAction struct {

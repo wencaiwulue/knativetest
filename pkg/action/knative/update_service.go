@@ -5,10 +5,10 @@ import (
 	"fmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
+	"knativetest/pkg/action"
+	"knativetest/pkg/client"
 	"log"
 	"net/http"
-	"test/pkg/action"
-	"test/pkg/client"
 )
 
 type UpdateServiceTrafficAction struct {

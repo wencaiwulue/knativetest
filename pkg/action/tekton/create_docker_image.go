@@ -36,7 +36,7 @@ func (a *CreateDockerImageAction) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	}
 
 	opts := types.ImageBuildOptions{
-		Dockerfile: "Dockerfile",
+		Dockerfile: "Dockerfile_admissionwebhook",
 		Tags:       []string{"" + "/node-hello"},
 		Remove:     true,
 	}

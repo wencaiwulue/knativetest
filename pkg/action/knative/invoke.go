@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"io/ioutil"
+	"knativetest/pkg/action"
 	"net/http"
-	"test/pkg/action"
 	"time"
 )
 

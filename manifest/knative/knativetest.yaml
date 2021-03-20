@@ -6,15 +6,15 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: test
+      test: test
   replicas: 1
   template:
     metadata:
       labels:
-        app: test
+        test: test
     spec:
       containers:
-        - image: test:latest
+        - image: knative:latest
           imagePullPolicy: IfNotPresent
           name: test
           ports:
@@ -26,3 +26,23 @@ spec:
             limits:
               memory: "128Mi"
               cpu: "500m"
+          volumeMounts:
+            - mountPath: /var/run/docker.sock
+              name: dockersock
+              subPath: docker.sock
+      volumes:
+        - name: dockersock
+          hostPath:
+            path: /var/run/
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test
+  namespace: test
+spec:
+  selector:
+    app: test
+  ports:
+    - port: 80
+  type: NodePort

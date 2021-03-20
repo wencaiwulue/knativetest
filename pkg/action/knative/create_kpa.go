@@ -6,9 +6,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/serving/pkg/apis/autoscaling/v1alpha1"
+	"knativetest/pkg/action"
+	"knativetest/pkg/client"
 	"log"
-	"test/pkg/action"
-	"test/pkg/client"
 )
 
 type CreateKPAAction struct {

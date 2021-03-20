@@ -5,8 +5,8 @@ import (
 	"context"
 	"io"
 	corev1 "k8s.io/api/core/v1"
-	"test/pkg/action"
-	"test/pkg/client"
+	"knativetest/pkg/action"
+	"knativetest/pkg/client"
 )
 
 type GetLogAction struct {

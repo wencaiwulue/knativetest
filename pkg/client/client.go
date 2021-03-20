@@ -3,12 +3,10 @@ package client
 import (
 	"fmt"
 	tektoncd "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
+	"go.etcd.io/etcd/clientv3"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	kubeadmapiv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
-	configutil "k8s.io/kubernetes/cmd/kubeadm/app/util/config"
-	"k8s.io/kubernetes/cmd/kubeadm/app/util/etcd"
 	serving "knative.dev/serving/pkg/client/clientset/versioned"
 	"sync"
 )
@@ -21,7 +19,7 @@ type Client struct {
 	K8sClient     *kubernetes.Clientset
 	ServingClient *serving.Clientset
 	TektonClient  *tektoncd.Clientset
-	EtcdClient    *etcd.Client
+	EtcdClient    *clientv3.Client
 }
 
 func GetClient() *Client {
@@ -55,20 +53,24 @@ func initClient(inCluster bool) {
 	if err != nil {
 		fmt.Printf("error create tekton client: %v", err)
 	}
-	internalcfg, err := configutil.DefaultedInitConfiguration(&kubeadmapiv1beta1.InitConfiguration{})
-	if err != nil {
-		fmt.Printf("unexpected error getting default config: %v", err)
-	}
-	etcdClient, err := etcd.NewFromCluster(k8sClient, internalcfg.CertificatesDir)
-	if etcdClient == nil || err != nil {
-		fmt.Printf("new client with DialNoWait should succeed, got %v", err)
-	}
+	//internalcfg, err := configutil.DefaultedInitConfiguration(&kubeadmapiv1beta1.InitConfiguration{})
+	//if err != nil {
+	//	fmt.Printf("unexpected error getting default config: %v", err)
+	//}
+	//fromCluster, err := etcd.NewFromCluster(k8sClient, internalcfg.CertificatesDir)
+	//if fromCluster == nil || err != nil {
+	//	fmt.Printf("new client with DialNoWait should succeed, got %v", err)
+	//}
+	//etcdClient, err := clientv3.New(clientv3.Config{Endpoints: fromCluster.Endpoints, TLS: fromCluster.TLS})
+	//if etcdClient == nil || err != nil {
+	//	fmt.Printf("new client with DialNoWait should succeed, got %v", err)
+	//}
 
 	client = &Client{
 		Config:        config,
 		K8sClient:     k8sClient,
 		ServingClient: servingClient,
 		TektonClient:  tektonClient,
-		EtcdClient:    etcdClient,
+		//EtcdClient:    etcdClient,
 	}
 }

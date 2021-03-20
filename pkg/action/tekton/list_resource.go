@@ -3,9 +3,9 @@ package tekton
 import (
 	"context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"test/pkg/action"
-	"test/pkg/action/knative"
-	"test/pkg/client"
+	"knativetest/pkg/action"
+	"knativetest/pkg/action/knative"
+	"knativetest/pkg/client"
 )
 
 type ListResourceAction struct {

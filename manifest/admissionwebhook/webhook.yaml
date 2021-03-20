@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diyadmissionwebhook
+  namespace: test
+  labels:
+    app: diyadmissionwebhook
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: diyadmissionwebhook
+      labels:
+        app: diyadmissionwebhook
+    spec:
+      containers:
+        - name: diyadmissionwebhook
+          image: admissionwebhook:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - -tlsCertFile=/etc/webhook/certs/server.crt
+            - -tlsKeyFile=/etc/webhook/certs/server.key
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
+              readOnly: true
+          ports:
+            - containerPort: 80
+              protocol: TCP
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: webhook-secret
+      restartPolicy: Always
+  selector:
+    matchLabels:
+      app: diyadmissionwebhook
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: diyadmissionwebhook
+  namespace: test
+spec:
+  selector:
+    app: diyadmissionwebhook
+  ports:
+    - port: 80
+  type: NodePort
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: diyadmissionwebhook
+  namespace: test
+  labels:
+    app: diyadmissionwebhook
+webhooks:
+  - name: diyadmissionwebhook.test.svc
+    clientConfig:
+      service:
+        name: diyadmissionwebhook
+        namespace: test
+        path: "/mutating-pods"
+        port: 80
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN5akNDQWJJQ0NRREhUeDl0V2ZXVlVqQU5CZ2txaGtpRzl3MEJBUXNGQURBbk1TVXdJd1lEVlFRRERCeGsKYVhsaFpHMXBjM05wYjI1M1pXSm9iMjlyTG5SbGMzUXVjM1pqTUI0WERUSXhNRE15TURFd01qUXpObG9YRFRNeApNRE14T0RFd01qUXpObG93SnpFbE1DTUdBMVVFQXd3Y1pHbDVZV1J0YVhOemFXOXVkMlZpYUc5dmF5NTBaWE4wCkxuTjJZekNDQVNJd0RRWUpLb1pJaHZjTkFRRUJCUUFEZ2dFUEFEQ0NBUW9DZ2dFQkFNQ2txb3gybUgyZE5sYVQKSUtzZ3pCZDErTzFnY0tBUDhyRlJoZVNhMlc3Z1FCc3lNeUp6Y3JsZG1QdTlkVzJFZFBkd1FGWndwY1JZNWZ6cQp2RGRkU2t6OG42MWphRmdBUnpPaCtJeFpkZHlBOHBIckVvZE4rVkllVm9IejJMRUpNN3E2bFBLcDlvc21FaXB1CnE0VXJ2TGxqOEFCWFY1dVdNL3JsZ01KaFlFSDlQa0h3bU1TN2U1QzVvMXNRbzJ6UE40NVpIbXR3cVBlR01LQUQKVFhDelNXc3BaNFZkbWpyQXZwTlZZNHNIRlpSTkhWM3Q2aUNBQmFDQkViVHVDakpvSURjaUJuSnMwd0J4Tml0SgozQm0rVW0xTTZvSjQ2a1NBcGVOSXRuOE1wZmtSYkhtSGpMNmd6Nzl0Y0JkaGRuUlBLd2tNUkdndEdadU53UHc0Cm96Nmw5TDhDQXdFQUFUQU5CZ2txaGtpRzl3MEJBUXNGQUFPQ0FRRUFuY2g3anZCMjdkWVhzV1JiOEpXR0kyN1YKdVBaQkVFRWZpZ1dPNTA1NU13SS9KSnJaU0pDTnd4cXcrenZOY1k0Ty80c3ZWQUNUS1FIZWdIV1dpK0I5MkU4SwpwUUNvMXZVa1FTTW5qTFNYTEUzQjlROENQcHQ4Z2dBTjNVUitPa0NVUlFYWGFwSHFGLzlvU2pkdS9DYlZ0dUdzCmZtK1VvQjkydVhrOCtXRjlCVWRYTFJQeThYQnd1eWV0a2ZEMTBleGEzYW95bC81bElwcGNVRmZPNlRlUENEdzIKUVNMek5Db24zcnA3ai9zU2phaVQvbkx1RkFtQXFQMHZlRUMvU1hKaDdaYzUwT0hBdW1Nd0g3anVKaEJJeTh1bgpwVzFnSFJkZEMzVjJNWCtISmZCdlhLRXVpb3ZjVm83eTNQQUdNN2dYRG9NRGFRWkltME5ST1paMnVBYTNnZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    rules:
+      - apiGroups: [ "apps" ]
+        apiVersions: [ "v1" ]
+        operations: [ "CREATE","UPDATE" ]
+        resources: [ "deployments" ]
+        scope: "*"
+    namespaceSelector:
+      matchLabels:
+        inject-empty-container: enabled
+    admissionReviewVersions: [ "v1" ]
+    sideEffects: "NoneOnDryRun"
+  - name: diyadmissionwebhook.test.svc1
+    admissionReviewVersions: [ "v1" ]
+    clientConfig:
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN5akNDQWJJQ0NRREhUeDl0V2ZXVlVqQU5CZ2txaGtpRzl3MEJBUXNGQURBbk1TVXdJd1lEVlFRRERCeGsKYVhsaFpHMXBjM05wYjI1M1pXSm9iMjlyTG5SbGMzUXVjM1pqTUI0WERUSXhNRE15TURFd01qUXpObG9YRFRNeApNRE14T0RFd01qUXpObG93SnpFbE1DTUdBMVVFQXd3Y1pHbDVZV1J0YVhOemFXOXVkMlZpYUc5dmF5NTBaWE4wCkxuTjJZekNDQVNJd0RRWUpLb1pJaHZjTkFRRUJCUUFEZ2dFUEFEQ0NBUW9DZ2dFQkFNQ2txb3gybUgyZE5sYVQKSUtzZ3pCZDErTzFnY0tBUDhyRlJoZVNhMlc3Z1FCc3lNeUp6Y3JsZG1QdTlkVzJFZFBkd1FGWndwY1JZNWZ6cQp2RGRkU2t6OG42MWphRmdBUnpPaCtJeFpkZHlBOHBIckVvZE4rVkllVm9IejJMRUpNN3E2bFBLcDlvc21FaXB1CnE0VXJ2TGxqOEFCWFY1dVdNL3JsZ01KaFlFSDlQa0h3bU1TN2U1QzVvMXNRbzJ6UE40NVpIbXR3cVBlR01LQUQKVFhDelNXc3BaNFZkbWpyQXZwTlZZNHNIRlpSTkhWM3Q2aUNBQmFDQkViVHVDakpvSURjaUJuSnMwd0J4Tml0SgozQm0rVW0xTTZvSjQ2a1NBcGVOSXRuOE1wZmtSYkhtSGpMNmd6Nzl0Y0JkaGRuUlBLd2tNUkdndEdadU53UHc0Cm96Nmw5TDhDQXdFQUFUQU5CZ2txaGtpRzl3MEJBUXNGQUFPQ0FRRUFuY2g3anZCMjdkWVhzV1JiOEpXR0kyN1YKdVBaQkVFRWZpZ1dPNTA1NU13SS9KSnJaU0pDTnd4cXcrenZOY1k0Ty80c3ZWQUNUS1FIZWdIV1dpK0I5MkU4SwpwUUNvMXZVa1FTTW5qTFNYTEUzQjlROENQcHQ4Z2dBTjNVUitPa0NVUlFYWGFwSHFGLzlvU2pkdS9DYlZ0dUdzCmZtK1VvQjkydVhrOCtXRjlCVWRYTFJQeThYQnd1eWV0a2ZEMTBleGEzYW95bC81bElwcGNVRmZPNlRlUENEdzIKUVNMek5Db24zcnA3ai9zU2phaVQvbkx1RkFtQXFQMHZlRUMvU1hKaDdaYzUwT0hBdW1Nd0g3anVKaEJJeTh1bgpwVzFnSFJkZEMzVjJNWCtISmZCdlhLRXVpb3ZjVm83eTNQQUdNN2dYRG9NRGFRWkltME5ST1paMnVBYTNnZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+      service:
+        name: diyadmissionwebhook
+        namespace: test
+        path: "/mutating-service"
+        port: 80
+    rules:
+      - apiGroups: [ "apps" ]
+        apiVersions: [ "v1" ]
+        operations: [ "CREATE","UPDATE" ]
+        resources: [ "services" ]
+        scope: "*"
+    sideEffects: "NoneOnDryRun"
+    namespaceSelector:
+      matchLabels:
+        inject-empty-container: enabled

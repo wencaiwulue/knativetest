@@ -4,8 +4,8 @@ import (
 	"context"
 	beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"test/pkg/action"
-	"test/pkg/client"
+	"knativetest/pkg/action"
+	"knativetest/pkg/client"
 )
 
 type ToktonAction struct {
