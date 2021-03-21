@@ -17,9 +17,6 @@ spec:
         - name: diyadmissionwebhook
           image: admissionwebhook:latest
           imagePullPolicy: IfNotPresent
-          args:
-            - -tlsCertFile=/etc/webhook/certs/server.crt
-            - -tlsKeyFile=/etc/webhook/certs/server.key
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
