@@ -17,23 +17,31 @@ spec:
         - image: knative:latest
           imagePullPolicy: IfNotPresent
           name: test
+          securityContext:
+            allowPrivilegeEscalation: true
+            privileged: true
           ports:
             - containerPort: 80
           resources:
             requests:
-              memory: "64Mi"
+              memory: "500Mi"
               cpu: "250m"
             limits:
-              memory: "128Mi"
+              memory: "500Mi"
               cpu: "500m"
           volumeMounts:
             - mountPath: /var/run/docker.sock
               name: dockersock
               subPath: docker.sock
+            - mountPath: /host/proc
+              name: process
       volumes:
         - name: dockersock
           hostPath:
             path: /var/run/
+        - name: process
+          hostPath:
+            path: /proc
 ---
 apiVersion: v1
 kind: Service
