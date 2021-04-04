@@ -33,15 +33,15 @@ spec:
             - mountPath: /var/run/docker.sock
               name: dockersock
               subPath: docker.sock
-            - mountPath: /host/proc
-              name: process
+            - mountPath: /etc/kubernetes/pki/etcd
+              name: etcd
       volumes:
         - name: dockersock
           hostPath:
             path: /var/run/
-        - name: process
+        - name: etcd
           hostPath:
-            path: /proc
+            path: /etc/kubernetes/pki/etcd
 ---
 apiVersion: v1
 kind: Service

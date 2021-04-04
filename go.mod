@@ -5,16 +5,18 @@ go 1.15
 require (
 	github.com/docker/docker v1.13.1
 	github.com/google/uuid v1.1.2
-	github.com/pkg/errors v0.9.1
+	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/tektoncd/pipeline v0.18.1
+	github.com/wencaiwulue/stream4go v0.0.4
 	go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738
 	k8s.io/api v0.20.5
 	k8s.io/apimachinery v0.20.5
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
-	k8s.io/cluster-bootstrap v0.20.5 // indirect
 	k8s.io/klog v1.0.0
+	k8s.io/klog/v2 v2.4.0 // indirect
 	knative.dev/networking v0.0.0-20201103163404-b9f80f4537af
 	knative.dev/serving v0.19.0
+	sigs.k8s.io/yaml v1.2.0
 )
 
 // Pin k8s deps to v0.18.8

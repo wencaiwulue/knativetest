@@ -2,8 +2,10 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	tektoncd "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
+	"github.com/wencaiwulue/stream4go/stream"
 	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/pkg/transport"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -14,8 +16,8 @@ import (
 	serving "knative.dev/serving/pkg/client/clientset/versioned"
 	"net"
 	"path/filepath"
+	"sigs.k8s.io/yaml"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -56,25 +58,28 @@ func initClient(inCluster bool) {
 	//var err error
 	k8sClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		fmt.Printf("error create k8s client: %v", err)
+		fmt.Printf("error create k8s client: %v\n", err)
 	}
 	servingClient, err := serving.NewForConfig(config)
 	if err != nil {
-		fmt.Printf("error create knative serving client: %v", err)
+		fmt.Printf("error create knative serving client: %v\n", err)
 	}
 	tektonClient, err := tektoncd.NewForConfig(config)
 	if err != nil {
-		fmt.Printf("error create tekton client: %v", err)
+		fmt.Printf("error create tekton client: %v\n", err)
 	}
-	clusterStatus, err := GetClusterStatus(k8sClient)
+	advertiseAddress, err := GetAdvertiseAddress(k8sClient)
 	if err != nil {
-		fmt.Printf("GetClusterStatus error: %v\n", err)
+		fmt.Printf("GetAdvertiseAddress error: %v\n", err)
 	} else {
-		fmt.Printf("clusterStatus: %v, endpoints: %v\n", clusterStatus, clusterStatus)
+		fmt.Printf("advertiseAddress: %v\n", advertiseAddress)
 	}
 
-	certificatesDir := filepath.Join("/run/config", "pki")
+	endpoints := stream.StringStream.Of(advertiseAddress...).Map(func(ip string) string {
+		return "https://" + net.JoinHostPort(ip, strconv.Itoa(2379))
+	}).ToSlice()
 
+	certificatesDir := filepath.Join("/etc/kubernetes", "pki")
 	tlsInfo := transport.TLSInfo{
 		CertFile:      filepath.Join(certificatesDir, "etcd/ca.crt"),
 		KeyFile:       filepath.Join(certificatesDir, "etcd/healthcheck-client.crt"),
@@ -85,17 +90,21 @@ func initClient(inCluster bool) {
 		fmt.Printf("tcs error: %v, tlsConfig: %v\n", err, tlsConfig)
 	}
 
-	endpoints := []string{GetClientURLByIP(clusterStatus)}
-
 	etcdClient, err := clientv3.New(clientv3.Config{Endpoints: endpoints})
 	if etcdClient == nil || err != nil {
-		fmt.Printf("new client with DialNoWait should succeed, got %v, endpoints: %v", err, endpoints)
-	} else {
-		fmt.Printf("etcd cient: %v \n", etcdClient)
+		fmt.Printf("new client with DialNoWait should succeed, got %v, endpoints: %v\n", err, endpoints)
 	}
-	resp, err := etcdClient.Get(context.TODO(), "testKey", clientv3.WithFromKey())
+	fmt.Println("------BEFORE-----")
+	ctx, cancel := context.WithTimeout(context.TODO(), 3*time.Second)
+	if err = etcdClient.Sync(ctx); err != nil {
+		fmt.Printf("sync error: %v\n", err)
+	}
+	cancel()
+	fmt.Println("------AFTER-----")
+
+	resp, err := etcdClient.Get(ctx, "testKey", clientv3.WithFromKey())
 	if err != nil {
-		fmt.Printf("error info: %v", err)
+		fmt.Printf("error info: %v\n", err)
 	} else {
 		fmt.Printf("response: %v\n", resp)
 	}
@@ -105,9 +114,9 @@ func initClient(inCluster bool) {
 	} else {
 		fmt.Printf("put data response: %v\n", res)
 	}
-	ctx, cancel := context.WithTimeout(context.TODO(), 3*time.Second)
+	ctx, cancel = context.WithTimeout(context.TODO(), 3*time.Second)
 	resp, err = etcdClient.Get(ctx, "testKey", clientv3.WithRev(res.Header.Revision))
-	defer cancel()
+	cancel()
 	if err != nil {
 		fmt.Printf("Get data error: %v\n", err)
 	} else {
@@ -123,35 +132,36 @@ func initClient(inCluster bool) {
 		TektonClient:  tektonClient,
 		EtcdClient:    etcdClient,
 	}
-
 }
 
-func GetClusterStatus(client *kubernetes.Clientset) (string, error) {
+func GetAdvertiseAddress(client *kubernetes.Clientset) ([]string, error) {
 	configMap, err := client.CoreV1().ConfigMaps(metav1.NamespaceSystem).Get(context.Background(), "kubeadm-config", metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		fmt.Printf("not found")
-		return "", nil
+		return []string{}, nil
 	}
 	if err != nil {
-		return "", err
+		return []string{}, err
 	}
 
 	s := configMap.Data["ClusterStatus"]
-	fmt.Printf("configmap ClusterStatus: %v\n", s)
+	b, err := yaml.YAMLToJSON([]byte(s))
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+	status := ClusterStatus{}
+	_ = json.Unmarshal(b, &status)
 
-	clusterStatus := UnmarshalClusterStatus(configMap.Data)
-
-	return clusterStatus, nil
-}
-func UnmarshalClusterStatus(data map[string]string) string {
-	clusterStatusData, _ := data["ClusterStatus"]
-	ip := clusterStatusData[strings.LastIndex(clusterStatusData, "advertiseAddress"):strings.LastIndex(clusterStatusData, "bindPort")]
-	ip = strings.Split(ip, ":")[1]
-	ip = strings.TrimRight(ip, " ")
-	ip = strings.TrimLeft(ip, " ")
-	return ip
+	return stream.ObjectStream.Of(status.APIEndpoints).FlatMap().MapToString(func(i interface{}) string {
+		return i.(*stream.Entry).Value.Interface().(APIEndpoint).AdvertiseAddress
+	}).ToSlice(), nil
 }
 
-func GetClientURLByIP(ip string) string {
-	return "https://" + net.JoinHostPort(ip, strconv.Itoa(2379))
+type ClusterStatus struct {
+	APIEndpoints map[string]APIEndpoint `json:"apiEndpoints"`
+}
+
+type APIEndpoint struct {
+	AdvertiseAddress string `json:"advertiseAddress"`
+	BindPort         int32  `json:"bindPort"`
 }

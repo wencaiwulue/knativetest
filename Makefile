@@ -7,4 +7,4 @@ admissionwebhook:
 
 .PHONY: knative
 knative:
-	./build/build.sh knative
+	./build/build.sh knative && ./build/logs.sh knative

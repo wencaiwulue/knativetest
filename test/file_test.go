@@ -23,6 +23,6 @@ func parseFile(filename string, out interface{}) {
 
 func TestParseFile(t *testing.T) {
 	task := &v1beta1.ClusterTask{}
-	parseFile("../../manifest/task.manifest", task)
+	parseFile("../../manifest/tekton/task.yaml", task)
 	fmt.Printf("task info: %v\n", task)
 }
