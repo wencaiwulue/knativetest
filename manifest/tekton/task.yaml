@@ -1,0 +1,51 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: helloworld-task
+spec:
+  params:
+    - name: pathToDockerFile
+      type: string
+      description: The path to the dockerfile to build
+      default: $(resources.inputs.docker-source.path)/Dockerfile_admissionwebhook
+    - name: pathToContext
+      type: string
+      description: The path to the context to build
+      default: $(resources.inputs.docker-source.path)
+    - name: image
+      type: string
+      description: |
+        The build context used by Kaniko
+        (https://github.com/GoogleContainerTools/kaniko#kaniko-build-contexts)
+      default: $(resources.outputs.builtImage.url)
+  resources:
+    inputs:
+      - name: docker-source
+        type: git
+    outputs:
+      - name: builtImage
+        type: image
+  workspaces:
+    - name: source
+  steps:
+    - name: build-and-push
+      image: gcr.io/kaniko-project/executor:v0.16.0
+      env:
+        - name: "DOCKER_CONFIG"
+          value: "/tekton/home/.docker/"
+      command:
+        - /kaniko/executor
+      args:
+        - --dockerfile=$(params.pathToDockerFile)
+        - --destination=$(params.image)
+        - --context=$(params.pathToContext)
+        - --insecure-registry=10.1.1.20:5000
+        - --verbosity=debug
+        - --cache=false
+    - name: pull-and-deploy
+      image: lachlanevenson/k8s-kubectl
+      command: [ "kubectl" ]
+      args:
+        - "apply"
+        - "-f"
+        - "$(resources.inputs.docker-source.path)/deploy"

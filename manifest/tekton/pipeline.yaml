@@ -1,0 +1,37 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: pipeline-with-parameters
+spec:
+  params:
+    - name: context
+      type: string
+      description: Path to context
+      default: /some/where/or/other
+  tasks:
+    - name: build-app
+      taskRef:
+        name: build-app
+      params:
+        - name: pathToDockerFile
+          value: Dockerfile_admissionwebhook
+        - name: pathToContext
+          value: "$(params.context)"
+    - name: push-app
+      taskRef:
+        name: build-push
+      runAfter: build-app
+      resources:
+        outputs:
+          - name: image
+            resource: my-image
+    - name: deploy-app
+      taskRef:
+        name: deploy-kubectl
+      runAfter: push-app
+      resources:
+        inputs:
+          - name: image
+            resource: my-image
+            from:
+              - build-app
