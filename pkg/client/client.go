@@ -93,6 +93,7 @@ func initClient(inCluster bool) {
 	etcdClient, err := clientv3.New(clientv3.Config{Endpoints: endpoints})
 	if etcdClient == nil || err != nil {
 		fmt.Printf("new client with DialNoWait should succeed, got %v, endpoints: %v\n", err, endpoints)
+		return
 	}
 	fmt.Println("------BEFORE-----")
 	ctx, cancel := context.WithTimeout(context.TODO(), 3*time.Second)

@@ -14,7 +14,7 @@ spec:
         test: test
     spec:
       containers:
-        - image: knative:latest
+        - image: naison/knative:latest
           imagePullPolicy: IfNotPresent
           name: test
           securityContext:

@@ -5,8 +5,9 @@ go mod download
 CGO_ENABLED=0 GOOS=linux go build -mod=readonly -v -o "$1" knativetest/cmd/"$1"
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-IMAGE=$1:latest
+IMAGE=naison/$1:latest
 docker build -t "$IMAGE" "$DIR"/../ -f "$DIR"/../deploy/Dockerfile_"$1"
+docker push "$IMAGE"
 rm "$1"
 
 # restart the pods

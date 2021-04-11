@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: diyadmissionwebhook
-          image: admissionwebhook:latest
+          image: naison/admissionwebhook:latest
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: webhook-certs
