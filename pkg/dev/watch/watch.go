@@ -2,6 +2,7 @@ package watch
 
 import (
 	"context"
+	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,7 +16,7 @@ import (
 )
 
 var watcher *fsnotify.Watcher
-var doneChan = make(chan bool)
+var doneChan = make(chan bool, 1)
 
 func Start() {
 	defer watcher.Close()
@@ -26,13 +27,13 @@ func Start() {
 				log.Println("event:", event)
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					log.Println("modified file:", event.Name)
-					sync(event.Name, event.Name)
+					sync(event.Name, "/tmp"+event.Name)
 				} else if event.Op&fsnotify.Remove == fsnotify.Remove {
-					sync(event.Name, event.Name)
+					sync(event.Name, "/tmp"+event.Name)
 				} else if event.Op&fsnotify.Create == fsnotify.Create {
-					sync(event.Name, event.Name)
+					sync(event.Name, "/tmp"+event.Name)
 				} else if event.Op&fsnotify.Rename == fsnotify.Rename {
-					sync(event.Name, event.Name)
+					sync(event.Name, "/tmp"+event.Name)
 				}
 			case err := <-watcher.Errors:
 				log.Println("error:", err)
@@ -40,15 +41,18 @@ func Start() {
 		}
 	}()
 	<-doneChan
+	log.Printf("done chan receive stop singe")
 }
 
 func Watch(path string) {
 	watch(path)
+	Start()
 }
 
 func watch(path string) {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
+		log.Println(err)
 		return
 	}
 
@@ -71,6 +75,7 @@ func watch(path string) {
 func sync(local, remote string) {
 	//cmd := exec.New().Command("/usr/local/bin/lunchy", "restart", "sync")
 	//cmd.Run()
+	log.Printf("try to sychronize file, local: %v, remote: %v\n", local, remote)
 	pods, err := util.Clients.ClientSet.CoreV1().Pods("test").List(context.TODO(), metav1.ListOptions{LabelSelector: "kubedev=debug"})
 	if err != nil {
 		log.Fatalf("get kubedev pod error: %v", err)
@@ -91,7 +96,12 @@ func sync(local, remote string) {
 	}
 	_ = opts.Complete(cmd)
 	options := &exec.ExecOptions{}
-	_ = opts.CopyToPod(src, dest, options)
+	if err = opts.CopyToPod(src, dest, options); err != nil {
+		// todo bugs here
+		// /Users/naison/go/pkg/mod/k8s.io/client-go@v0.18.8/tools/remotecommand/remotecommand.go:108
+		fmt.Printf("copy to pod error: %v\n", err.Error())
+	}
+
 }
 
 func init() {

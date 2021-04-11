@@ -61,7 +61,7 @@ func WaitToBeStatus(client *kubernetes.Clientset, namespace string, resource str
 	defer cancel()
 
 	watchlist := cache.NewFilteredListWatchFromClient(
-		client.CoreV1().RESTClient(),
+		client.AppsV1().RESTClient(),
 		resource,
 		namespace,
 		func(options *metav1.ListOptions) {

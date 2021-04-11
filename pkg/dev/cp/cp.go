@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/kubectl/pkg/cmd/exec"
+	"knativetest/pkg/dev/util"
 	"os"
 	"path"
 	"path/filepath"
@@ -53,8 +56,15 @@ type CopyOptions struct {
 }
 
 func NewCopyOptions(ioStreams genericclioptions.IOStreams) *CopyOptions {
+	util.Clients.RestConfig.GroupVersion = &schema.GroupVersion{
+		Group:   "apps",
+		Version: "v1",
+	}
+	util.Clients.RestConfig.NegotiatedSerializer = scheme.Codecs
 	return &CopyOptions{
-		IOStreams: ioStreams,
+		ClientConfig: util.Clients.RestConfig,
+		Clientset:    util.Clients.ClientSet,
+		IOStreams:    ioStreams,
 	}
 }
 
@@ -116,17 +126,9 @@ func extractFileSpec(arg string) (FileSpec, error) {
 }
 
 func (o *CopyOptions) Complete(cmd *cobra.Command) error {
-	var err error
 	o.Namespace = "test"
-
-	o.ClientConfig, err = restclient.InClusterConfig()
-	if err != nil {
-		return err
-	}
-	o.Clientset, err = kubernetes.NewForConfig(o.ClientConfig)
-	if err != nil {
-		return err
-	}
+	o.ClientConfig = util.Clients.RestConfig
+	o.Clientset = util.Clients.ClientSet
 	return nil
 }
 
