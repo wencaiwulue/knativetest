@@ -22,7 +22,7 @@ var Cmd = &cobra.Command{
 	Long:  `kubedev`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
-			return errors.Errorf("%q requires at least 1 argument\n", cmd.CommandPath())
+			return errors.Errorf("%s requires at least 1 argument\n", cmd.CommandPath())
 		}
 		return nil
 	},

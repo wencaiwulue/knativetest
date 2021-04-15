@@ -3,7 +3,6 @@ package kubedev
 import (
 	"context"
 	"encoding/json"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,13 +37,11 @@ var startCmd = &cobra.Command{
 	Short: "start",
 	Long:  `start`,
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 1 {
-			return errors.Errorf("%s requires at least 1 argument\n", cmd.CommandPath())
-		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("starting...")
+		log.Println(args)
 		b, _ := json.Marshal(startOption)
 		log.Println(string(b))
 		client, err := util.InitClient(rootOption.Kubeconfig)
@@ -52,38 +49,14 @@ var startCmd = &cobra.Command{
 			log.Fatalf("init clientset error: %v\n", err)
 		}
 
-		_ = `{ "op": "remove", "path": "/spec/template/spec/containers/0/readinessProbe" }
-            { "op": "remove", "path": "/spec/template/spec/containers/0/livenessProbe" },
-            { "op": "add", "path": "/spec/template/metadata/labels/kubedev", "value":"debug" },
-            { "op": "add", "path": "/metadata/labels/kubedev", "value":"debug" }`
-		mergePatch := []string{
-			`{"spec": {"template": {"metadata": {"labels":{"kubedev":"debug"}}}}}`,
-			`{"spec": {"template": {"spec": {"containers": [{"name": "test","readinessProbe":null, "livenessProbe":null}]}}}}`,
-			`{"metadata": {"labels": {"kubedev": "debug"}}}`,
-		}
-		jsonPatch := `[
-		  { "op": "replace", "path": "/spec/template/spec/containers/0/image", "value": "naison/empty-container:latest" },
-          { "op": "replace", "path": "/spec/replicas", "value": 1 }
-	    ]`
-		r, e := client.ClientSet.AppsV1().Deployments(startOption.NameSpace).Get(context.TODO(), startOption.Deployment, metav1.GetOptions{})
-		if e != nil {
-			log.Fatal(err)
-		} else {
-			log.Println(r.Name)
-		}
-		res, err := client.ClientSet.AppsV1().Deployments(startOption.NameSpace).
-			Patch(context.TODO(), startOption.Deployment, types.JSONPatchType, []byte(jsonPatch), metav1.PatchOptions{})
-		if err != nil {
-			log.Fatalf("first patch deployment %v failed, error info: %v\n, response: %v", startOption.Deployment, err, res)
-		}
-		for i, patch := range mergePatch {
-			res, err = client.ClientSet.AppsV1().Deployments(startOption.NameSpace).
-				Patch(context.TODO(), startOption.Deployment, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
-			if err != nil {
-				log.Fatalf("%v patch deployment %v failed, error info: %v\n, response: %v", startOption.Deployment, i, err, res)
-			}
+		deployment, err2 := client.ClientSet.AppsV1().Deployments(startOption.NameSpace).Get(context.TODO(), startOption.Deployment, metav1.GetOptions{})
+		if err2 != nil {
+			log.Fatal(err2)
 		}
 
+		// todo rollback
+		log.Println("prepare to update deployment")
+		patch(deployment)
 		log.Println("patch deployment ok, waiting for pod to be ready")
 
 		util.WaitToBeStatus(client.ClientSet, startOption.NameSpace, "deployments", "kubedev=debug", func(i interface{}) bool {
@@ -92,4 +65,75 @@ var startCmd = &cobra.Command{
 		log.Println("pod ready, finish patch deployment, try to synchronize file")
 		watch.Watch(startOption.LocalDir)
 	},
+}
+
+/**
+1, update replica to 1
+2, replace container to empty container
+3, remove livenessProbe and readinessProbe
+4, add deployment label and pod template label kubedev=debug
+*/
+func patch(r *v1.Deployment) {
+	// todo why don't work
+	_ = `{ "op": "remove", "path": "/spec/template/spec/containers/0/readinessProbe" }
+            { "op": "remove", "path": "/spec/template/spec/containers/0/livenessProbe" },
+            { "op": "add", "path": "/spec/template/metadata/labels/kubedev", "value":"debug" },
+            { "op": "add", "path": "/metadata/labels/kubedev", "value":"debug" }`
+
+	// already in debug mode
+	alreadyInDebug := true
+	one := int32(1)
+	if r.Spec.Template.Spec.Containers[0].Image != "naison/empty-container:latest" || r.Spec.Replicas != &one {
+		alreadyInDebug = false
+		jsonPatch := `[
+		  { "op": "replace", "path": "/spec/template/spec/containers/0/image", "value": "naison/empty-container:latest" },
+          { "op": "replace", "path": "/spec/replicas", "value": 1 }
+	    ]`
+		res, err := util.Clients.ClientSet.AppsV1().Deployments(startOption.NameSpace).
+			Patch(context.TODO(), startOption.Deployment, types.JSONPatchType, []byte(jsonPatch), metav1.PatchOptions{})
+		if err != nil {
+			log.Fatalf("first patch deployment %v failed, error info: %v\n, response: %v", startOption.Deployment, err, res)
+		}
+	}
+	if r.Labels["kubedev"] == "" || r.Spec.Template.Labels["kubedev"] == "" ||
+		r.Spec.Template.Spec.Containers[0].LivenessProbe != nil ||
+		r.Spec.Template.Spec.Containers[0].ReadinessProbe != nil {
+		alreadyInDebug = false
+		mergePatch := []string{
+			`{"spec": {"template": {"metadata": {"labels":{"kubedev":"debug"}}}}}`,
+			`{"spec": {"template": {"spec": {"containers": [{"name": "test","readinessProbe":null, "livenessProbe":null}]}}}}`,
+			`{"metadata": {"labels": {"kubedev": "debug"}}}`,
+		}
+		for i, patch := range mergePatch {
+			res, err := util.Clients.ClientSet.AppsV1().Deployments(startOption.NameSpace).
+				Patch(context.TODO(), startOption.Deployment, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
+			if err != nil {
+				log.Fatalf("%v patch deployment %v failed, error info: %v\n, response: %v", startOption.Deployment, i, err, res)
+			}
+		}
+	}
+	s := `
+          metadata:
+            labels:
+              kubedev: debug
+          spec:
+            template:
+              metadata:
+                labels:
+                  kubedev: debug
+              spec:
+                containers:
+                - name: test
+                  readinessProbe:
+                  livenessProbe:`
+	res, err := util.Clients.ClientSet.AppsV1().Deployments(startOption.NameSpace).
+		Patch(context.TODO(), startOption.Deployment, types.StrategicMergePatchType, []byte(s), metav1.PatchOptions{})
+	if err != nil {
+		log.Fatalf("%v patch deployment %v third times failed, error info: %v\n, response: %v", startOption.Deployment, err, res)
+	}
+	if alreadyInDebug {
+		log.Println("already in debug mode, don't needs to update")
+	} else {
+		log.Println("patch successfully")
+	}
 }
