@@ -4,12 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
-	"github.com/spf13/cobra"
 	"io/ioutil"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/kubectl/pkg/cmd/cp"
-	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	sync2 "knativetest/pkg/dev/sync"
 	"knativetest/pkg/dev/util"
 	"log"
@@ -18,75 +15,117 @@ import (
 	"strings"
 )
 
-var watcher *fsnotify.Watcher
-var doneChan = make(chan bool, 1)
-var localDir, remoteDir string
+type FileWatcher struct {
+	client     *util.ClientSet
+	watcher    *fsnotify.Watcher
+	podSyncer  sync2.Syncer
+	doneChan   chan bool
+	namespace  string
+	deployment string
+	pod        string
+	container  string
+	localDir   string
+	remoteDir  string
+}
 
-func Start() {
-	defer watcher.Close()
+type DevOptions interface {
+	GetNamespace() string
+	GetDeployment() string
+	GetPod() string
+	GetContainer() string
+	GetLocalDir() string
+	GetRemoteDir() string
+}
+
+func (w *FileWatcher) GetKubeContext() string {
+	return ""
+}
+
+func (w *FileWatcher) GetKubeConfig() string {
+	return w.client.Kubeconfig
+}
+
+func (w *FileWatcher) GetKubeNamespace() string {
+	return w.namespace
+}
+
+func (w *FileWatcher) start() {
+	defer w.watcher.Close()
 	go func() {
 		for {
 			select {
-			case event := <-watcher.Events:
-				log.Printf("event: %s, rel path: %s\n", event, getRPath(event.Name, localDir))
-				rpath := getRPath(event.Name, localDir)
-				newpath := filepath.Join(remoteDir, rpath)
+			case event := <-w.watcher.Events:
+				from := event.Name
+				to := filepath.Join(w.remoteDir, getRelativePath(from, w.localDir))
+				log.Printf("event: %s, relative path: %s\n", event, to)
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					log.Println("modified file:", event.Name)
-					syncWithExec(event.Name, newpath)
+					w.syncWithExec(from, to)
 				} else if event.Op&fsnotify.Remove == fsnotify.Remove {
-					removeWithExec(event.Name, newpath)
-					fi, _ := os.Stat(event.Name)
-					if fi.IsDir() {
-						unWatch(fi.Name())
-					}
+					w.unWatch(from)
+					w.removeWithExec(from, to)
 				} else if event.Op&fsnotify.Create == fsnotify.Create {
-					syncWithExec(event.Name, newpath)
-					fi, _ := os.Stat(event.Name)
-					if fi.IsDir() {
-						watch(fi.Name())
+					w.syncWithExec(from, to)
+					fileInfo, _ := os.Stat(from)
+					if fileInfo.IsDir() {
+						w.watch(fileInfo.Name())
 					}
 				} else if event.Op&fsnotify.Rename == fsnotify.Rename {
-					syncWithExec(event.Name, newpath)
+					w.syncWithExec(from, to)
 				} else if event.Op&fsnotify.Chmod == fsnotify.Chmod {
-					syncWithExec(event.Name, newpath)
+					w.syncWithExec(from, to)
 				}
-			case err := <-watcher.Errors:
-				log.Println("error:", err)
+			case err := <-w.watcher.Errors:
+				log.Printf("error: %v\n", err)
 			}
 		}
 	}()
-	<-doneChan
+	<-w.doneChan
 	log.Printf("done chan receive stop singe")
 }
 
-func getRPath(f, base string) string {
+func getRelativePath(f, base string) string {
 	base = filepath.Join(base, string(os.PathSeparator))
 	return strings.ReplaceAll(f, base, "")
 }
 
-func Watch(local, remote string) {
-	localDir = local
-	remoteDir = remote
-	watch(localDir)
-	syncWithExec(localDir, remote)
-	Start()
+func Watch(cli *util.ClientSet, option DevOptions) {
+	newWatcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	w := &FileWatcher{
+		client:     cli,
+		watcher:    newWatcher,
+		doneChan:   make(chan bool, 1),
+		namespace:  option.GetNamespace(),
+		deployment: option.GetDeployment(),
+		pod:        option.GetPod(),
+		container:  option.GetContainer(),
+		localDir:   option.GetLocalDir(),
+		remoteDir:  option.GetRemoteDir(),
+	}
+	w.podSyncer = sync2.NewPodSyncer(w, w.namespace)
+
+	w.watch(option.GetLocalDir())
+	w.copyFolder(option.GetLocalDir(), option.GetRemoteDir())
+	w.start()
 }
 
-func unWatch(path string) {
-	if e := watcher.Remove(path); e != nil {
+func (w *FileWatcher) unWatch(path string) {
+	if e := w.watcher.Remove(path); e != nil {
 		fmt.Println(e)
 	}
 }
 
-func watch(path string) {
+func (w *FileWatcher) watch(path string) {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	err = watcher.Add(path)
+	err = w.watcher.Add(path)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -96,93 +135,52 @@ func watch(path string) {
 		list, _ := ioutil.ReadDir(path)
 		for _, info := range list {
 			if info.IsDir() {
-				watch(filepath.Join(path, info.Name()))
+				w.watch(filepath.Join(path, info.Name()))
 			}
 		}
 	}
 }
 
-func syncWithExec(local, remote string) {
+func (w *FileWatcher) syncWithExec(local, remote string) {
 	fmt.Printf("try to sync local: %s, to remote: %s\n", local, remote)
-	pods, err := util.Clients.ClientSet.CoreV1().Pods("test").
-		List(context.TODO(), metav1.ListOptions{LabelSelector: "kubedev=debug"})
-	if err != nil {
-		log.Fatalf("get kubedev pod error: %v", err)
-	}
-	if len(pods.Items) != 1 {
-		log.Println("this should not happened")
-	}
-	kubeconfig := util.Clients.Kubeconfig
-	namespace := "test"
-	podSyncer := sync2.NewPodSyncer(namespace, kubeconfig, "")
+	pod, container := w.getPodAndContainer()
 	maps := map[string][]string{local: {remote}}
-	copyFileFn := podSyncer.CopyFileFn(context.Background(), pods.Items[0], pods.Items[0].Spec.Containers[0], maps)
+	copyFileFn := w.podSyncer.CopyFileCmd(context.Background(), pod, container, maps)
 	if b, err := sync2.RunCmdOut(copyFileFn); err != nil {
 		fmt.Printf("error sync: %v, log: %s\n", err.Error(), string(b))
 	}
 }
 
-func removeWithExec(local, remote string) {
+func (w *FileWatcher) removeWithExec(local, remote string) {
 	fmt.Printf("try to sync local: %s, to remote: %s\n", local, remote)
-	pods, err := util.Clients.ClientSet.CoreV1().Pods("test").
-		List(context.TODO(), metav1.ListOptions{LabelSelector: "kubedev=debug"})
-	if err != nil {
-		log.Fatalf("get kubedev pod error: %v", err)
-	}
-	if len(pods.Items) != 1 {
-		log.Println("this should not happened")
-	}
-	kubeconfig := util.Clients.Kubeconfig
-	namespace := "test"
-	podSyncer := sync2.NewPodSyncer(namespace, kubeconfig, "")
+	pod, container := w.getPodAndContainer()
 	maps := map[string][]string{local: {remote}}
-	copyFileFn := podSyncer.DeleteFileFn(context.Background(), pods.Items[0], pods.Items[0].Spec.Containers[0], maps)
+	copyFileFn := w.podSyncer.DeleteFileCmd(context.Background(), pod, container, maps)
 	if b, err := sync2.RunCmdOut(copyFileFn); err != nil {
 		fmt.Printf("error sync: %v, log: %s\n", err.Error(), string(b))
 	}
 }
 
-func init() {
-	newWatcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatal(err)
+func (w *FileWatcher) copyFolder(local, remote string) {
+	log.Printf("copy full, local: %s, remote: %s\n", local, remote)
+	pod, container := w.getPodAndContainer()
+	copyFileFn := w.podSyncer.CopyFolderCmd(context.Background(), pod, container, local, remote)
+	if b, err := sync2.RunCmdOut(copyFileFn); err != nil {
+		fmt.Printf("error sync: %v, log: %s\n", err.Error(), string(b))
 	}
-	watcher = newWatcher
 }
 
-func copy(local, remote string) {
-	pods, err := util.Clients.ClientSet.CoreV1().Pods("test").
-		List(context.TODO(), metav1.ListOptions{LabelSelector: "kubedev=debug"})
+func (w *FileWatcher) getPodAndContainer() (corev1.Pod, corev1.Container) {
+	if w.pod != "" && w.container != "" {
+		return corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: w.pod, Namespace: w.namespace}}, corev1.Container{Name: w.container}
+	}
+
+	pods, err := w.client.ClientSet.CoreV1().Pods(w.namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "kubedev=debug"})
 	if err != nil {
 		log.Fatalf("get kubedev pod error: %v", err)
 	}
 	if len(pods.Items) != 1 {
 		log.Println("this should not happened")
 	}
-	ioStreams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
-	opts := cp.NewCopyOptions(ioStreams)
-	err = opts.Complete(newFactory(), &cobra.Command{})
-	if err != nil {
-		log.Printf("complete error: %v\n", err)
-	} else {
-		log.Println("complete no error")
-	}
-	opts.Namespace = "test"
-	opts.Container = "test"
-	err = opts.Run([]string{"/Users/naison/Desktop", "test/test-54d97cbcd-792r4:/tmp"})
-	if err != nil {
-		log.Printf("error info: %v\n", err)
-	} else {
-		log.Println("sync no error")
-	}
-}
-
-func newFactory() cmdutil.Factory {
-	kubeConfigFlags := genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
-	path := "/Users/naison/codingtest"
-	namespace := "test"
-	kubeConfigFlags.Namespace = &namespace
-	kubeConfigFlags.KubeConfig = &path
-	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(kubeConfigFlags)
-	return cmdutil.NewFactory(matchVersionKubeConfigFlags)
+	return pods.Items[0], pods.Items[0].Spec.Containers[0]
 }

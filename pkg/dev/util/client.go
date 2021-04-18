@@ -7,8 +7,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var Clients *ClientSet
-
 type ClientSet struct {
 	Kubeconfig    string
 	RestConfig    *restclient.Config
@@ -39,6 +37,5 @@ func InitClient(kubeconfig string) (*ClientSet, error) {
 		return nil, err
 	}
 
-	Clients = client
 	return client, nil
 }
