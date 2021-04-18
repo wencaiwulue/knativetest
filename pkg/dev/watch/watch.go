@@ -57,7 +57,7 @@ func (w *FileWatcher) start() {
 			case event := <-w.watcher.Events:
 				from := event.Name
 				to := filepath.Join(w.remoteDir, getRelativePath(from, w.localDir))
-				log.Printf("event: %s, relative path: %s\n", event, to)
+				log.Printf("event: %v, relative path: %s\n", event, to)
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					w.syncWithExec(from, to)
 				} else if event.Op&fsnotify.Remove == fsnotify.Remove {
@@ -65,12 +65,10 @@ func (w *FileWatcher) start() {
 					w.removeWithExec(from, to)
 				} else if event.Op&fsnotify.Create == fsnotify.Create {
 					w.syncWithExec(from, to)
-					fileInfo, _ := os.Stat(from)
-					if fileInfo.IsDir() {
-						w.watch(fileInfo.Name())
-					}
+					w.watch(from)
 				} else if event.Op&fsnotify.Rename == fsnotify.Rename {
-					w.syncWithExec(from, to)
+					w.unWatch(from)
+					w.removeWithExec(from, to)
 				} else if event.Op&fsnotify.Chmod == fsnotify.Chmod {
 					w.syncWithExec(from, to)
 				}
@@ -85,7 +83,9 @@ func (w *FileWatcher) start() {
 
 func getRelativePath(f, base string) string {
 	base = filepath.Join(base, string(os.PathSeparator))
-	return strings.ReplaceAll(f, base, "")
+	newPath := strings.ReplaceAll(f, base, "")
+	folder := filepath.Base(base)
+	return folder + newPath
 }
 
 func Watch(cli *util.ClientSet, option DevOptions) {
@@ -152,7 +152,7 @@ func (w *FileWatcher) syncWithExec(local, remote string) {
 }
 
 func (w *FileWatcher) removeWithExec(local, remote string) {
-	fmt.Printf("try to sync local: %s, to remote: %s\n", local, remote)
+	fmt.Printf("try to remove local: %s, to remote: %s\n", local, remote)
 	pod, container := w.getPodAndContainer()
 	maps := map[string][]string{local: {remote}}
 	copyFileFn := w.podSyncer.DeleteFileCmd(context.Background(), pod, container, maps)
