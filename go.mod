@@ -7,8 +7,8 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/google/uuid v1.1.2
 	github.com/pkg/errors v0.9.1
+	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.0.0
-	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/tektoncd/pipeline v0.18.1
 	github.com/wencaiwulue/stream4go v0.0.4
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20200819165624-17cef6e3e9d5
@@ -39,6 +39,6 @@ replace (
 replace (
 	github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.8.1
 	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.5.4
-	golang.org/x/sys => golang.org/x/sys v0.0.0-20200826173525-f9321e4c35a6
+	golang.org/x/sys => golang.org/x/sys v0.0.0-20210415045647-66c3f260301c
 	google.golang.org/grpc => google.golang.org/grpc v1.26.0
 )

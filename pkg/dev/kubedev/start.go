@@ -12,9 +12,9 @@ import (
 	"log"
 )
 
-var startOption = &startOptions{}
+var startOption = &StartOptions{}
 
-type startOptions struct {
+type StartOptions struct {
 	NameSpace  string
 	Deployment string
 	Pod        string
@@ -63,7 +63,7 @@ var startCmd = &cobra.Command{
 			return i.(*v1.Deployment).Status.ReadyReplicas == 1
 		})
 		log.Println("pod ready, finish patch deployment, try to synchronize file")
-		watch.Watch(startOption.LocalDir)
+		watch.Watch(startOption.LocalDir, startOption.RemoteDir)
 	},
 }
 
@@ -112,25 +112,25 @@ func patch(r *v1.Deployment) {
 			}
 		}
 	}
-	s := `
-          metadata:
-            labels:
-              kubedev: debug
-          spec:
-            template:
-              metadata:
-                labels:
-                  kubedev: debug
-              spec:
-                containers:
-                - name: test
-                  readinessProbe:
-                  livenessProbe:`
-	res, err := util.Clients.ClientSet.AppsV1().Deployments(startOption.NameSpace).
-		Patch(context.TODO(), startOption.Deployment, types.StrategicMergePatchType, []byte(s), metav1.PatchOptions{})
-	if err != nil {
-		log.Fatalf("%v patch deployment %v third times failed, error info: %v\n, response: %v", startOption.Deployment, err, res)
-	}
+	/*s := `
+	            metadata:
+	              labels:
+	                kubedev: debug
+	            spec:
+	              template:
+	                metadata:
+	                  labels:
+	                    kubedev: debug
+	                spec:
+	                  containers:
+	                  - name: test
+	                    readinessProbe:
+	                    livenessProbe:`
+	  	res, err := util.Clients.ClientSet.AppsV1().Deployments(startOption.NameSpace).
+	  		Patch(context.TODO(), startOption.Deployment, types.StrategicMergePatchType, []byte(s), metav1.PatchOptions{})
+	  	if err != nil {
+	  		log.Fatalf("%v patch deployment %v third times failed, error info: %v\n, response: %v", startOption.Deployment, err, res)
+	  	}*/
 	if alreadyInDebug {
 		log.Println("already in debug mode, don't needs to update")
 	} else {
