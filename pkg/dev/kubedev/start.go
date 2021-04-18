@@ -7,6 +7,7 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"knativetest/pkg/dev/network"
 	"knativetest/pkg/dev/util"
 	"knativetest/pkg/dev/watch"
 	"log"
@@ -63,7 +64,8 @@ var startCmd = &cobra.Command{
 			return i.(*v1.Deployment).Status.ReadyReplicas == 1
 		})
 		log.Println("pod ready, finish patch deployment, try to synchronize file")
-		watch.Watch(client, startOption)
+		go watch.Watch(client, startOption)
+		network.PortForward(client, startOption)
 	},
 }
 
