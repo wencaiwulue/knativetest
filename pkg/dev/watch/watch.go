@@ -108,7 +108,7 @@ func Watch(cli *util.ClientSet, option DevOptions) {
 	w.podSyncer = sync2.NewPodSyncer(w, w.namespace)
 
 	w.watch(option.GetLocalDir())
-	w.copyFolder(option.GetLocalDir(), option.GetRemoteDir())
+	w.WriteFolder(option.GetLocalDir(), option.GetRemoteDir())
 	w.start()
 }
 
@@ -161,12 +161,18 @@ func (w *FileWatcher) removeWithExec(local, remote string) {
 	}
 }
 
-func (w *FileWatcher) copyFolder(local, remote string) {
+func (w *FileWatcher) WriteFolder(local, remote string) {
+	lastFolder := filepath.Base(local)
+	remote = filepath.Join(remote, lastFolder)
 	log.Printf("copy full, local: %s, remote: %s\n", local, remote)
 	pod, container := w.getPodAndContainer()
+	deleteFileCmd := w.podSyncer.DeleteFileCmd(context.Background(), pod, container, map[string][]string{local: {remote}})
+	if b, err := sync2.RunCmdOut(deleteFileCmd); err != nil {
+		fmt.Printf("error empty folder: %v, log: %s\n", err.Error(), string(b))
+	}
 	copyFileFn := w.podSyncer.CopyFolderCmd(context.Background(), pod, container, local, remote)
 	if b, err := sync2.RunCmdOut(copyFileFn); err != nil {
-		fmt.Printf("error sync: %v, log: %s\n", err.Error(), string(b))
+		fmt.Printf("error copy folder: %v, log: %s\n", err.Error(), string(b))
 	}
 }
 
