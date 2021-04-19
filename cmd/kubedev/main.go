@@ -13,6 +13,6 @@ func main() {
 	}
 
 	if err := kubedev.Cmd.Execute(); err != nil {
-		log.Fatal(err)
+		log.Fatalf("exec command error: %v\n", err)
 	}
 }

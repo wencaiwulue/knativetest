@@ -59,18 +59,18 @@ func (w *FileWatcher) start() {
 				to := filepath.Join(w.remoteDir, getRelativePath(from, w.localDir))
 				log.Printf("event: %v, relative path: %s\n", event, to)
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					w.syncWithExec(from, to)
+					go w.syncWithExec(from, to)
 				} else if event.Op&fsnotify.Remove == fsnotify.Remove {
+					go w.removeWithExec(from, to)
 					w.unWatch(from)
-					w.removeWithExec(from, to)
 				} else if event.Op&fsnotify.Create == fsnotify.Create {
-					w.syncWithExec(from, to)
+					go w.syncWithExec(from, to)
 					w.watch(from)
 				} else if event.Op&fsnotify.Rename == fsnotify.Rename {
+					go w.removeWithExec(from, to)
 					w.unWatch(from)
-					w.removeWithExec(from, to)
 				} else if event.Op&fsnotify.Chmod == fsnotify.Chmod {
-					w.syncWithExec(from, to)
+					go w.syncWithExec(from, to)
 				}
 			case err := <-w.watcher.Errors:
 				log.Printf("error: %v\n", err)
