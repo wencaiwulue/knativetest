@@ -82,7 +82,7 @@ func (c *CLI) CommandWithStrictCancellation(ctx context.Context, command string,
 // args builds an argument list for calling kubectl and consistently
 // adds the `--context` and `--namespace` flags.
 func (c *CLI) args(command string, namespace string, arg ...string) []string {
-	args := []string{"--context", c.KubeContext}
+	args := []string{ /*"--context", c.KubeContext*/ }
 	namespace = c.resolveNamespace(namespace)
 	if namespace != "" {
 		args = append(args, "--namespace", namespace)

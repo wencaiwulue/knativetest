@@ -5,8 +5,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -83,7 +85,15 @@ func WaitToBeStatus(client *kubernetes.Clientset, namespace string, resource str
 	conditionFunc := func(e watch.Event) (bool, error) {
 		return checker(e.Object), nil
 	}
-	event, err := clientgowatch.UntilWithSync(ctx, watchlist, &v1.Pod{}, preConditionFunc, conditionFunc)
+
+	var objType runtime.Object
+	if strings.Contains(resource, "deployment") {
+		objType = &appsv1.Deployment{}
+	} else if strings.Contains(resource, "pods") {
+		objType = &v1.Pod{}
+	}
+
+	event, err := clientgowatch.UntilWithSync(ctx, watchlist, objType, preConditionFunc, conditionFunc)
 	if err != nil {
 		fmt.Printf("wait to ready failed, error: %v, event: %v\n", err, event)
 		return false

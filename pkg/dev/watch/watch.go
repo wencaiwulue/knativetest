@@ -42,7 +42,7 @@ func (w *FileWatcher) GetKubeContext() string {
 }
 
 func (w *FileWatcher) GetKubeConfig() string {
-	return w.client.Kubeconfig
+	return w.client.KubeConfig
 }
 
 func (w *FileWatcher) GetKubeNamespace() string {

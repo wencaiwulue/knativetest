@@ -27,7 +27,7 @@ func (f *forward) GetKubeContext() string {
 }
 
 func (f *forward) GetKubeConfig() string {
-	return f.client.Kubeconfig
+	return f.client.KubeConfig
 }
 
 func (f *forward) GetKubeNamespace() string {
